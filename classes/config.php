@@ -104,7 +104,7 @@ class Config
 			$group = $group === true ? $file->group() : $group;
 		}
 
-		// Serialize no assoc arrays.
+		// Serialize non-assoc arrays.
 		$serialize = function (&$array) use (&$serialize)
 		{
 			foreach ($array as $k => &$v)
@@ -123,7 +123,7 @@ class Config
 			}
 		};
 
-		// Unserialize no assoc arrays.
+		// Unserialize non-assoc arrays.
 		$unserialize = function (&$array) use (&$unserialize)
 		{
 			foreach ($array as $k => &$v)
@@ -144,7 +144,7 @@ class Config
 		
 		if ($group === null)
 		{
-			// Before merging, serialize no assoc arrays.
+			// Before merging, serialize non-assoc arrays.
 			$serialize(static::$items);
 			$serialize($config);
 
@@ -161,7 +161,7 @@ class Config
 				static::$items[$group] = array();
 			}
 
-			// Before merging, serialize no assoc arrays.
+			// Before merging, serialize non-assoc arrays.
 			$serialize(static::$items[$group]);
 			$serialize($config);
 

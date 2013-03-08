@@ -41,11 +41,56 @@ abstract class Config_File implements Config_Interface
 		$paths = $this->find_file($cache);
 		$config = array();
 
+		// Serialize non-assoc arrays.
+		$serialize = function (&$array) use (&$serialize)
+		{
+			foreach ($array as $k => &$v)
+			{
+				if (is_array($v))
+				{
+					if (\Arr::is_assoc($v))
+					{
+						$serialize($v);
+					}
+					else
+					{
+						$v = array(md5('_serialized_'.$k) => true, 'content' => serialize($v));
+					}
+				}
+			}
+		};
+
+		// Unserialize non-assoc arrays.
+		$unserialize = function (&$array) use (&$unserialize)
+		{
+			foreach ($array as $k => &$v)
+			{
+				if (is_array($v))
+				{
+					if (\Arr::get($v, md5('_serialized_'.$k)))
+					{
+						$v = unserialize(\Arr::get($v, 'content'));
+					}
+					else
+					{
+						$unserialize($v);
+					}
+				}
+			}
+		};
+
 		foreach ($paths as $path)
 		{
+			$load_config = $this->load_file($path);
+
+			$serialize($load_config);
+			$serialize($config);
+
 			$config = $overwrite ?
-				array_merge($config, $this->load_file($path)) :
-				\Arr::merge($config, $this->load_file($path));
+				array_merge($config, $load_config) :
+				\Arr::merge($config, $load_config);
+
+			$unserialize($config);
 		}
 
 		return $config;
