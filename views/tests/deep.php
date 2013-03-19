@@ -1,0 +1,1 @@
+<?php echo $foo ?>|<?php $foo = 'fuel'; echo View::forge('tests/foo', true) ?>
