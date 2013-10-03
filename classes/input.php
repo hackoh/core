@@ -368,7 +368,8 @@ class Input
 	 */
 	public static function get($index = null, $default = null)
 	{
-		return (func_num_args() === 0) ? \Request::active()->get_params() : \Arr::get(\Request::active()->get_params(), $index, $default);
+		$params = ($request = \Request::active()) ? $request->get_params() : $_GET;
+		return (func_num_args() === 0) ? $params : \Arr::get($params, $index, $default);
 	}
 
 	/**
@@ -380,7 +381,8 @@ class Input
 	 */
 	public static function post($index = null, $default = null)
 	{
-		return (func_num_args() === 0) ? \Request::active()->post_params() : \Arr::get(\Request::active()->post_params(), $index, $default);
+		$params = ($request = \Request::active()) ? $request->post_params() : $_POST;
+		return (func_num_args() === 0) ? $params : \Arr::get($params, $index, $default);
 	}
 
 	/**
