@@ -56,7 +56,7 @@ class Request
 	 * @param   string   request method
 	 * @return  Request  The new request object
 	 */
-	public static function forge($uri = null, $options = true, $method = null)
+	public static function forge($uri = null, $options = true, $method = null, $emulate_request_params = false)
 	{
 		is_bool($options) and $options = array('route' => $options);
 		is_string($options) and $options = array('driver' => $options);
@@ -67,7 +67,7 @@ class Request
 			return $class::forge($uri, $options, $method);
 		}
 
-		$request = new static($uri, isset($options['route']) ? $options['route'] : true, $method);
+		$request = new static($uri, isset($options['route']) ? $options['route'] : true, $method, $emulate_request_params);
 		if (static::$active)
 		{
 			$request->parent = static::$active;
@@ -209,6 +209,20 @@ class Request
 	public $action = '';
 
 	/**
+	 * The request's get params
+	 *
+	 * @var  array
+	 */
+	protected $get_params = array();
+
+	/**
+	 * The request's post params
+	 *
+	 * @var  array
+	 */
+	protected $post_params = null;
+
+	/**
 	 * The request's method params
 	 *
 	 * @var  array
@@ -251,6 +265,13 @@ class Request
 	protected $children = array();
 
 	/**
+	 * Whether to emulate request parameters
+	 *
+	 * @var  bool
+	 */
+	protected $emulate_request_params = false;
+
+	/**
 	 * Creates the new Request object by getting a new URI object, then parsing
 	 * the uri with the Route class.
 	 *
@@ -261,12 +282,25 @@ class Request
 	 * @param   string  the uri string
 	 * @param   bool    whether or not to route the URI
 	 * @param   string  request method
+	 * @param   bool    whether to emulate request parameters
 	 * @return  void
 	 */
-	public function __construct($uri, $route = true, $method = null)
+	public function __construct($uri, $route = true, $method = null, $emulate_request_params = false)
 	{
+		if ($query = strrchr($uri, '?'))
+		{
+			$uri = substr($uri, 0, strlen($uri) - strpos($uri, $query) + 1);
+			parse_str(ltrim($query, '?'), $this->get_params);
+		}
+		if (is_null($uri))
+		{
+			$this->get_params = $_GET;
+			$this->post_params = $_POST;
+		}
+
 		$this->uri = new \Uri($uri);
 		$this->method = $method ?: \Input::method();
+		$this->emulate_request_params = $emulate_request_params;
 
 		logger(\Fuel::L_INFO, 'Creating a new '.(static::$main==null?'main':'HMVC').' Request with URI = "'.$this->uri->get().'"', __METHOD__);
 
@@ -436,6 +470,8 @@ class Request
 						throw new \HttpNotFoundException();
 					}
 
+					is_null($this->post_params) and $this->post_params = $this->method_params;
+
 					// fire any controller started events
 					\Event::instance()->has_events('controller_started') and \Event::instance()->trigger('controller_started', '', 'none');
 
@@ -602,6 +638,26 @@ class Request
 	public function params()
 	{
 		return $this->named_params;
+	}
+
+	/**
+	 * Gets all of the get parameters
+	 *
+	 * @return  array
+	 */
+	public function get_params()
+	{
+		return $this->emulate_request_params ? $this->get_params : $_GET;
+	}
+
+	/**
+	 * Gets all of the post parameters
+	 *
+	 * @return  array
+	 */
+	public function post_params()
+	{
+		return $this->emulate_request_params ? $this->post_params : $_POST;
 	}
 
 	/**
