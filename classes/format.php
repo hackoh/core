@@ -351,15 +351,45 @@ class Format
 	 * @param   string  $string
 	 * @return  array
 	 */
-	protected function _from_xml($string)
+	protected function _from_xml($string, $recursive = false)
 	{
+
+		// If format.xml.ignore_namespaces is true, escapes namespace attributes.
+		if ($ignore_namespaces = \Config::get('format.xml.ignore_namespaces'))
+		{
+			static $escape_keys = array();
+			$recursive or $escape_keys = array('_xmlns' => 'xmlns');
+
+			if ( ! $recursive and strpos($string, 'xmlns') !== false and preg_match_all('/(\<.+?\>)/s', $string, $matches))
+			{
+				foreach ($matches[1] as $tag)
+				{
+					$escaped_tag = $tag;
+
+					strpos($tag, 'xmlns=') !== false and $escaped_tag = str_replace('xmlns=', '_xmlns=', $tag);
+
+					if (preg_match_all('/[\s\<\/]([^\/\s\'"]*?:\S*?)[=\/\>\s]/s', $escaped_tag, $xmlns))
+					{
+						foreach ($xmlns[1] as $ns)
+						{
+							$escaped = \Arr::search($escape_keys, $ns);
+							$escaped or $escape_keys[$escaped = str_replace(':', '_', $ns)] = $ns;
+							$string = str_replace($tag, $escaped_tag = str_replace($ns, $escaped, $escaped_tag), $string);
+							$tag = $escaped_tag;
+						}
+					}
+				}
+			}
+		}
+
 		$_arr = is_string($string) ? simplexml_load_string($string, 'SimpleXMLElement', LIBXML_NOCDATA) : $string;
 		$arr = array();
 
 		// Convert all objects SimpleXMLElement to array recursively
 		foreach ((array)$_arr as $key => $val)
 		{
-			$arr[$key] = (is_array($val) or is_object($val)) ? $this->_from_xml($val) : $val;
+			$ignore_namespaces and $key = \Arr::get($escape_keys, $key, $key);
+			$arr[$key] = (is_array($val) or is_object($val)) ? $this->_from_xml($val, true) : $val;
 		}
 
 		return $arr;
