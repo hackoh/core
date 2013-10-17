@@ -354,8 +354,8 @@ class Format
 	protected function _from_xml($string, $recursive = false)
 	{
 
-		// If format.xml.ignore_namespaces is true, escapes namespace attributes.
-		if ($ignore_namespaces = \Config::get('format.xml.ignore_namespaces'))
+		// If format.xml.include_namespaces is true, escapes namespace attributes.
+		if ($include_namespaces = \Config::get('format.xml.include_namespaces'))
 		{
 			static $escape_keys = array();
 			$recursive or $escape_keys = array('_xmlns' => 'xmlns');
@@ -373,7 +373,7 @@ class Format
 						foreach ($xmlns[1] as $ns)
 						{
 							$escaped = \Arr::search($escape_keys, $ns);
-							$escaped or $escape_keys[$escaped = str_replace(':', '_', $ns)] = $ns;
+							$escaped or $escape_keys[$escaped = str_replace(':', '_ns_', $ns)] = $ns;
 							$string = str_replace($tag, $escaped_tag = str_replace($ns, $escaped, $escaped_tag), $string);
 							$tag = $escaped_tag;
 						}
@@ -388,7 +388,7 @@ class Format
 		// Convert all objects SimpleXMLElement to array recursively
 		foreach ((array)$_arr as $key => $val)
 		{
-			$ignore_namespaces and $key = \Arr::get($escape_keys, $key, $key);
+			$include_namespaces and $key = \Arr::get($escape_keys, $key, $key);
 			$arr[$key] = (is_array($val) or is_object($val)) ? $this->_from_xml($val, true) : $val;
 		}
 

@@ -38,6 +38,6 @@ return array(
 	'xml' => array(
 		'basenode' => 'xml',
 		'use_cdata' => false,
-		'ignore_namespaces' => false,
+		'include_namespaces' => false,
 	),
 );
